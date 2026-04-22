@@ -1,3 +1,6 @@
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
 from pathlib import Path
 
 import numpy as np
@@ -72,7 +75,9 @@ def load_data(**kwargs):
     # Replace the two placholder lines below (which currently just copy the
     # training data) with your own implementation.
     train_data_label = train_data.clone()
-    train_data_input = train_data.clone()
+    train_data_label = train_data_label[:, :, 10:18, 10:18]
+    train_data_input = train_data
+    train_data_input[:, :, 10:18, 10:18] = 0.0
 
     # Visualize the training data if needed
     # Set to False if you don't want to save the images
