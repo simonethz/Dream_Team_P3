@@ -69,6 +69,9 @@ def load_data(**kwargs):
     # Make the test data a tensor
     test_data_input = torch.tensor(test_data_input, dtype=torch.float32)
 
+    # Normalize to [0, 1]
+    test_data_input = test_data_input / 255.0
+
     ########################################
     # DONE: Given the original training images, create the input images and the
     # label images to train your model. 
@@ -140,7 +143,7 @@ def training(train_data_input, train_data_label, **kwargs):
 
     # DONE: The value of n_epochs is just a placeholder and likely needs to be
     # changed
-    n_epochs = 10
+    n_epochs = 3
 
     for epoch in range(n_epochs):
         for x, y in tqdm(
@@ -230,7 +233,7 @@ def testing(model, test_data_input):
         test_data_output = torch.cat(test_data_output)
 
     # Change outer ring back to what we were given as input
-    center = test_data_output[:, :, 10:18, 10:18]
+    center = test_data_output[:, :, 10:18, 10:18].clamp(0, 1)
     test_data_output = test_data_input.clone()
     test_data_output[:, :, 10:18, 10:18] = center
 
