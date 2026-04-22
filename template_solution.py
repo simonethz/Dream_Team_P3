@@ -136,11 +136,11 @@ def training(train_data_input, train_data_label, **kwargs):
     data_loader = DataLoader(dataset, batch_size=batch_size)
 
     # Training loop
-    # TODO: Modify the training loop in case you need to
+    # DONE: Modify the training loop in case you need to
 
-    # TODO: The value of n_epochs is just a placeholder and likely needs to be
+    # DONE: The value of n_epochs is just a placeholder and likely needs to be
     # changed
-    n_epochs = 1
+    n_epochs = 20
 
     for epoch in range(n_epochs):
         for x, y in tqdm(
