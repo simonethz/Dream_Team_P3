@@ -63,6 +63,8 @@ def load_data(**kwargs):
     # Make the training data a tensor
     train_data = torch.tensor(train_data, dtype=torch.float32)
 
+    train_data = train_data / 255.0
+
     # Load the test data
     test_data_input = np.load("test_data.npz")["data"]
 
@@ -78,7 +80,7 @@ def load_data(**kwargs):
     # Replace the two placholder lines below (which currently just copy the
     # training data) with your own implementation.
     train_data_label = train_data.clone()
-    train_data_input = train_data
+    train_data_input = train_data.clone()
     train_data_input[:, :, 10:18, 10:18] = 0.0
 
     # Visualize the training data if needed
@@ -143,7 +145,7 @@ def training(train_data_input, train_data_label, **kwargs):
 
     # DONE: The value of n_epochs is just a placeholder and likely needs to be
     # changed
-    n_epochs = 3
+    n_epochs = 10
 
     for epoch in range(n_epochs):
         for x, y in tqdm(
