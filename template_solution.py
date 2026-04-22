@@ -70,7 +70,7 @@ def load_data(**kwargs):
     test_data_input = torch.tensor(test_data_input, dtype=torch.float32)
 
     ########################################
-    # TODO: Given the original training images, create the input images and the
+    # DONE: Given the original training images, create the input images and the
     # label images to train your model. 
     # Replace the two placholder lines below (which currently just copy the
     # training data) with your own implementation.
@@ -117,11 +117,11 @@ def training(train_data_input, train_data_label, **kwargs):
     model.train()
     model.to(device)
 
-    # TODO: Using MSE loss for now as it's simple to implement. More below:
+    # DONE: Using MSE loss for now as it's simple to implement. More below:
     # https://pytorch.org/docs/stable/nn.html#loss-functions
     criterion = nn.MSELoss()
 
-    # TODO: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
+    # DONE: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     # TODO: Correctly setup the dataloader - the below is just a placeholder
