@@ -140,7 +140,7 @@ def training(train_data_input, train_data_label, **kwargs):
 
     # DONE: The value of n_epochs is just a placeholder and likely needs to be
     # changed
-    n_epochs = 20
+    n_epochs = 10
 
     for epoch in range(n_epochs):
         for x, y in tqdm(
@@ -229,6 +229,11 @@ def testing(model, test_data_input):
             test_data_output.append(output.cpu())
         test_data_output = torch.cat(test_data_output)
 
+    # Change outer ring back to what we were given as input
+    center = test_data_output[:, :, 10:18, 10:18]
+    test_data_output = test_data_input.clone()
+    test_data_output[:, :, 10:18, 10:18] = center
+
     # Ensure the output has the correct shape
     assert test_data_output.shape == test_data_input.shape, (
         f"Expected shape {test_data_input.shape}, but got "
@@ -240,10 +245,11 @@ def testing(model, test_data_input):
 
     # Save the output
     test_data_output = test_data_output.numpy()
+    # Since data was normalized to [0, 1], scale it back to [0, 255] before saving
+    test_data_output *= 255.0
     # Ensure all values are in the range [0, 255]
     save_data_clipped = np.clip(test_data_output, 0, 255)
     # Convert to uint8
-    # Ensure your model outputs values in the [0, 255] range before this step! If you normalized your data to [0, 1], you must multiply by 255 before saving.
     save_data_uint8 = save_data_clipped.astype(np.uint8)
     # Loss is only computed on the masked area - so set the rest to 0 to save
     # space
