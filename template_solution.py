@@ -75,7 +75,6 @@ def load_data(**kwargs):
     # Replace the two placholder lines below (which currently just copy the
     # training data) with your own implementation.
     train_data_label = train_data.clone()
-    train_data_label = train_data_label[:, :, 10:18, 10:18]
     train_data_input = train_data
     train_data_input[:, :, 10:18, 10:18] = 0.0
 
@@ -119,7 +118,8 @@ def training(train_data_input, train_data_label, **kwargs):
 
     # DONE: Using MSE loss for now as it's simple to implement. More below:
     # https://pytorch.org/docs/stable/nn.html#loss-functions
-    criterion = nn.MSELoss()
+    def criterion(output, target):
+        return F.mse_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
 
     # DONE: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
