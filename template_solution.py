@@ -123,16 +123,16 @@ def training(train_data_input, train_data_label, **kwargs):
     # TODO: Dummy optimizer - change this to a more suitable optimizer
     optimizer = torch.optim.SGD(model.parameters())
 
-    # TODO: Correctly setup the dataloader - the below is just a placeholder
+    # TODO: Correctly setup the dataloader - the below is just a placeholder - DONE
     # Also consider that you might not want to use the entire dataset for
     # training alone
     # (batch_size needs to be changed)
-    batch_size = 1
+    batch_size = 64
     dataset = TensorDataset(train_data_input, train_data_label)
     # Consider the shuffle parameter and other parameters of the DataLoader
     # class (see
     # https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
-    data_loader = DataLoader(dataset, batch_size=batch_size)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
     # Training loop
     # TODO: Modify the training loop in case you need to
