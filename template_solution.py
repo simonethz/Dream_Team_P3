@@ -1,6 +1,7 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
+import copy
 from pathlib import Path
 
 import numpy as np
@@ -76,12 +77,22 @@ def load_data(**kwargs):
 
     ########################################
     # DONE: Given the original training images, create the input images and the
-    # label images to train your model. 
+    # label images to train your model.
     # Replace the two placholder lines below (which currently just copy the
     # training data) with your own implementation.
     train_data_label = train_data.clone()
     train_data_input = train_data.clone()
     train_data_input[:, :, 10:18, 10:18] = 0.0
+
+    # Add a mask channel: 1 inside the hole, 0 elsewhere. Lets the model
+    # distinguish "real black pixel" from "missing pixel".
+    def _with_mask(img):
+        mask = torch.zeros_like(img)
+        mask[:, :, 10:18, 10:18] = 1.0
+        return torch.cat([img, mask], dim=1)
+
+    train_data_input = _with_mask(train_data_input)
+    test_data_input = _with_mask(test_data_input)
 
     # Visualize the training data if needed
     # Set to False if you don't want to save the images
@@ -92,7 +103,7 @@ def load_data(**kwargs):
         for i in tqdm(range(20), desc="Plotting train images"):
             # Show the training and the target image side by side
             plt.subplot(1, 2, 1)
-            plt.imshow(train_data_input[i].squeeze(), cmap="gray")
+            plt.imshow(train_data_input[i, 0], cmap="gray")
             plt.title("Training Input")
             plt.subplot(1, 2, 2)
             plt.title("Training Label")
@@ -121,18 +132,10 @@ def training(train_data_input, train_data_label, **kwargs):
     model.train()
     model.to(device)
 
-    # Focal loss on the masked region. Same idea as BCE but the (1-p_t)^gamma
-    # factor down-weights easy/confident pixels so the gradient focuses on
-    # uncertain (grey) ones. gamma=0 reduces to plain BCE; raise for sharper
-    # outputs.
-    gamma = 0.1
+    # DONE: Using MSE loss for now as it's simple to implement. More below:
+    # https://pytorch.org/docs/stable/nn.html#loss-functions
     def criterion(output, target):
-        logits = output[:, :, 10:18, 10:18]
-        t = target[:, :, 10:18, 10:18]
-        bce = F.binary_cross_entropy_with_logits(logits, t, reduction="none")
-        p = torch.sigmoid(logits)
-        p_t = t * p + (1 - t) * (1 - p)
-        return ((1 - p_t) ** gamma * bce).mean()
+        return F.mse_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
 
     # DONE: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -153,9 +156,14 @@ def training(train_data_input, train_data_label, **kwargs):
 
     # DONE: The value of n_epochs is just a placeholder and likely needs to be
     # changed
-    n_epochs = 10
+    n_epochs = 20
+
+    best_loss = float("inf")
+    best_state = None
 
     for epoch in range(n_epochs):
+        epoch_loss_sum = 0.0
+        n_batches = 0
         for x, y in tqdm(
             data_loader, desc=f"Training Epoch {epoch}", leave=False
         ):
@@ -166,7 +174,19 @@ def training(train_data_input, train_data_label, **kwargs):
             loss.backward()
             optimizer.step()
 
-        print(f"Epoch {epoch} loss: {loss.item()}")
+            epoch_loss_sum += loss.item()
+            n_batches += 1
+
+        mean_loss = epoch_loss_sum / n_batches
+        marker = ""
+        if mean_loss < best_loss:
+            best_loss = mean_loss
+            best_state = copy.deepcopy(model.state_dict())
+            marker = " (best)"
+        print(f"Epoch {epoch} mean loss: {mean_loss:.6f}{marker}")
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
 
     return model
 
@@ -181,8 +201,8 @@ class Model(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # Encoder: 28x28 -> 14x14
-        self.enc1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        # Encoder: 28x28 -> 14x14 (input is 2 channels: image + hole mask)
+        self.enc1 = nn.Conv2d(2, 32, kernel_size=3, padding=1)
         self.enc2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
         self.enc3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
 
@@ -230,8 +250,12 @@ def testing(model, test_data_input):
             test_data_output.append(output.cpu())
         test_data_output = torch.cat(test_data_output)
 
-    # Model outputs logits (BCE-with-logits training); convert to pixel values.
-    center = torch.sigmoid(test_data_output[:, :, 10:18, 10:18])
+    # Drop the mask channel now that inference is done; downstream code and
+    # the shape assertion expect a 1-channel input.
+    test_data_input = test_data_input[:, :1]
+
+    # Change outer ring back to what we were given as input
+    center = test_data_output[:, :, 10:18, 10:18].clamp(0, 1)
     test_data_output = test_data_input.clone()
     test_data_output[:, :, 10:18, 10:18] = center
 
@@ -270,7 +294,7 @@ def testing(model, test_data_input):
             # Show the training and the target image side by side
             plt.subplot(1, 2, 1)
             plt.title("Test Input")
-            plt.imshow(test_data_input[i].squeeze().cpu().numpy(), cmap="gray")
+            plt.imshow(test_data_input[i, 0].cpu().numpy(), cmap="gray")
             plt.subplot(1, 2, 2)
             plt.imshow(test_data_output[i].squeeze(), cmap="gray")
             plt.title("Test Output")
