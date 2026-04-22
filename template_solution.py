@@ -121,10 +121,18 @@ def training(train_data_input, train_data_label, **kwargs):
     model.train()
     model.to(device)
 
-    # DONE: Using MSE loss for now as it's simple to implement. More below:
-    # https://pytorch.org/docs/stable/nn.html#loss-functions
+    # Focal loss on the masked region. Same idea as BCE but the (1-p_t)^gamma
+    # factor down-weights easy/confident pixels so the gradient focuses on
+    # uncertain (grey) ones. gamma=0 reduces to plain BCE; raise for sharper
+    # outputs.
+    gamma = 0.1
     def criterion(output, target):
-        return F.mse_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
+        logits = output[:, :, 10:18, 10:18]
+        t = target[:, :, 10:18, 10:18]
+        bce = F.binary_cross_entropy_with_logits(logits, t, reduction="none")
+        p = torch.sigmoid(logits)
+        p_t = t * p + (1 - t) * (1 - p)
+        return ((1 - p_t) ** gamma * bce).mean()
 
     # DONE: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -167,39 +175,27 @@ def training(train_data_input, train_data_label, **kwargs):
 # change this model - and are encouraged to do so.
 class Model(nn.Module):
     """
-    Implement your model here.
+    Small conv encoder-decoder for 28x28 inpainting.
     """
 
     def __init__(self):
-        """
-        The constructor of the model.
-        """
         super().__init__()
 
-        # A simple encoder-decoder MLP structure
-        self.fc1 = nn.Linear(784, 256)  # Encoder
-        self.fc2 = nn.Linear(256, 256)  # Hidden layer
-        self.fc3 = nn.Linear(256, 784)  # Decoder
+        # Encoder: 28x28 -> 14x14
+        self.enc1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
+        self.enc2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
+        self.enc3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+
+        # Decoder: 14x14 -> 28x28
+        self.dec1 = nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1)
+        self.dec2 = nn.Conv2d(32, 1, kernel_size=3, padding=1)
 
     def forward(self, x):
-        """
-        The forward pass of the model.
-
-        input: x: torch.Tensor, the input to the model
-
-        output: x: torch.Tensor, the output of the model
-        """
-        # Flatten the image in the last two dimensions
-        x = x.view(x.shape[0], -1)
-
-        # Pass through the network
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # No final activation for regression
-
-        # Reshape back to an image
-        x = x.view(x.shape[0], 1, 28, 28)
-
+        x = F.relu(self.enc1(x))
+        x = F.relu(self.enc2(x))
+        x = F.relu(self.enc3(x))
+        x = F.relu(self.dec1(x))
+        x = self.dec2(x)
         return x
 
 
@@ -234,8 +230,8 @@ def testing(model, test_data_input):
             test_data_output.append(output.cpu())
         test_data_output = torch.cat(test_data_output)
 
-    # Change outer ring back to what we were given as input
-    center = test_data_output[:, :, 10:18, 10:18].clamp(0, 1)
+    # Model outputs logits (BCE-with-logits training); convert to pixel values.
+    center = torch.sigmoid(test_data_output[:, :, 10:18, 10:18])
     test_data_output = test_data_input.clone()
     test_data_output[:, :, 10:18, 10:18] = center
 
