@@ -112,11 +112,12 @@ def training(train_data_input, train_data_label, **kwargs):
     model.train()
     model.to(device)
 
-    # TODO: Dummy criterion - change this to the correct loss function
+    # TODO: Using MSE loss for now as it's simple to implement. More below:
     # https://pytorch.org/docs/stable/nn.html#loss-functions
-    criterion = lambda x, y: torch.mean((x))
-    # TODO: Dummy optimizer - change this to a more suitable optimizer
-    optimizer = torch.optim.SGD(model.parameters())
+    criterion = nn.MSELoss()
+
+    # TODO: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     # TODO: Correctly setup the dataloader - the below is just a placeholder
     # Also consider that you might not want to use the entire dataset for
@@ -152,7 +153,7 @@ def training(train_data_input, train_data_label, **kwargs):
     return model
 
 
-# TODO: define a model. Here, a basic MLP model is defined. You can completely
+# DONE: define a model. Here, a basic MLP model is defined. You can completely
 # change this model - and are encouraged to do so.
 class Model(nn.Module):
     """
@@ -164,7 +165,11 @@ class Model(nn.Module):
         The constructor of the model.
         """
         super().__init__()
-        self.fc = nn.Linear(784, 784)
+
+        # A simple encoder-decoder MLP structure
+        self.fc1 = nn.Linear(784, 256)  # Encoder
+        self.fc2 = nn.Linear(256, 256)  # Hidden layer
+        self.fc3 = nn.Linear(256, 784)  # Decoder
 
     def forward(self, x):
         """
@@ -176,10 +181,15 @@ class Model(nn.Module):
         """
         # Flatten the image in the last two dimensions
         x = x.view(x.shape[0], -1)
-        x = self.fc(x)
-        x = F.relu(x)
-        # Reshape the image to the original shape
+
+        # Pass through the network
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)  # No final activation for regression
+
+        # Reshape back to an image
         x = x.view(x.shape[0], 1, 28, 28)
+
         return x
 
 
