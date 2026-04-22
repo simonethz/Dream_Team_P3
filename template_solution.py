@@ -124,7 +124,7 @@ def training(train_data_input, train_data_label, **kwargs):
     # DONE: Using MSE loss for now as it's simple to implement. More below:
     # https://pytorch.org/docs/stable/nn.html#loss-functions
     def criterion(output, target):
-        return F.mse_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
+        return F.l1_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
 
     # DONE: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
