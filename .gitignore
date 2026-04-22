@@ -1,3 +1,5 @@
 /.idea
 /.DS_Store
 /.vscode
+/test_image_output
+/train_image_output
