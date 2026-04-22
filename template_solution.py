@@ -61,7 +61,7 @@ def load_data(**kwargs):
     train_data = np.load("train_data.npz")["data"]
 
     # Make the training data a tensor
-    train_data = torch.tensor(train_data, dtype=torch.float32)
+    train_data = torch.tensor(train_data, dtype=torch.float32) / 255.0
 
     # Load the test data
     test_data_input = np.load("test_data.npz")["data"]
@@ -122,7 +122,7 @@ def training(train_data_input, train_data_label, **kwargs):
     # DONE: Using MSE loss for now as it's simple to implement. More below:
     # https://pytorch.org/docs/stable/nn.html#loss-functions
     def criterion(output, target):
-        return F.mse_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
+        return F.l1_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
 
     # DONE: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -143,7 +143,7 @@ def training(train_data_input, train_data_label, **kwargs):
 
     # DONE: The value of n_epochs is just a placeholder and likely needs to be
     # changed
-    n_epochs = 3
+    n_epochs = 20
 
     for epoch in range(n_epochs):
         for x, y in tqdm(
