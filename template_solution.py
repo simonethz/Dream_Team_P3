@@ -1,3 +1,11 @@
+"""
+CITATION DISCLAIMER: AI USAGE
+
+The implementation of this script was supported by various AI tools, including
+ChatGPT, Gemini, and Claude. The underlying logic and problem-solving approach
+were developed by the students.
+"""
+
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
@@ -12,52 +20,11 @@ from torch.utils.data import DataLoader, TensorDataset
 import torch.nn as nn
 import torch.nn.functional as F
 
-"""
-README FIRST
-
-The below code is a template for the solution. You can change the code according
-to your preferences, but the testing function has to save the output of your 
-model on the test data as it does in this template. This output must be submitted.
-
-Replace the dummy code with your own code in the TODO sections.
-
-We also encourage you to use tensorboard or wandb to log the training process
-and the performance of your model. This will help you to debug your model and
-to understand how it is performing. But the template does not include this
-functionality.
-Link for wandb:
-https://docs.wandb.ai/quickstart/
-Link for tensorboard: 
-https://pytorch.org/tutorials/recipes/recipes/tensorboard_with_pytorch.html
-"""
-
-# The device is automatically set to GPU if available, otherwise CPU
-# If you want to force the device to CPU, you can change the line to
-# device = torch.device("cpu")
-
-# If you have a Mac consult the following link:
-# https://pytorch.org/docs/stable/notes/mps.html
-
-# It is important that your model and all data are on the same device.
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def load_data(**kwargs):
-    """
-    Get the training and test data. The data files are assumed to be in the
-    same directory as this script.
-
-    Args:
-    - kwargs: Additional arguments that you might find useful - not necessary
-
-    Returns:
-    - train_data_input: Tensor[N_train_samples, C, H, W]
-    - train_data_label: Tensor[N_train_samples, C, H, W]
-    - test_data_input: Tensor[N_test_samples, C, H, W]
-    where N_train_samples is the number of training samples, N_test_samples is
-    the number of test samples, C is the number of channels (1 for grayscale),
-    H is the height of the image, and W is the width of the image.
-    """
+  
     # Load the training data
     train_data = np.load("train_data.npz")["data"]
 
@@ -75,11 +42,6 @@ def load_data(**kwargs):
     # Normalize to [0, 1]
     test_data_input = test_data_input / 255.0
 
-    ########################################
-    # DONE: Given the original training images, create the input images and the
-    # label images to train your model.
-    # Replace the two placholder lines below (which currently just copy the
-    # training data) with your own implementation.
     train_data_label = train_data.clone()
     train_data_input = train_data.clone()
     train_data_input[:, :, 10:18, 10:18] = 0.0
@@ -116,46 +78,23 @@ def load_data(**kwargs):
 
 
 def training(train_data_input, train_data_label, **kwargs):
-    """
-    Train the model. Fill in the details of the data loader, the loss function,
-    the optimizer, and the training loop.
 
-    Args:
-    - train_data_input: Tensor[N_train_samples, C, H, W]
-    - train_data_label: Tensor[N_train_samples, C, H, W]
-    - kwargs: Additional arguments that you might find useful - not necessary
-
-    Returns:
-    - model: torch.nn.Module
-    """
     model = Model()
     model.train()
     model.to(device)
 
-    # DONE: Using MSE loss for now as it's simple to implement. More below:
-    # https://pytorch.org/docs/stable/nn.html#loss-functions
+
     def criterion(output, target):
         return F.mse_loss(output[:, :, 10:18, 10:18],target[:, :, 10:18, 10:18])
 
     # DONE: Using a Adam optimizer for now (momentum, adaptive learning rate SGD)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    # TODO: Correctly setup the dataloader - the below is just a placeholder - DONE
-    # Also consider that you might not want to use the entire dataset for
-    # training alone
-    # (batch_size needs to be changed)
     batch_size = 64
     dataset = TensorDataset(train_data_input, train_data_label)
-    # Consider the shuffle parameter and other parameters of the DataLoader
-    # class (see
-    # https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader)
+
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
-    # Training loop
-    # DONE: Modify the training loop in case you need to
-
-    # DONE: The value of n_epochs is just a placeholder and likely needs to be
-    # changed
     n_epochs = 20
 
     best_loss = float("inf")
@@ -190,9 +129,6 @@ def training(train_data_input, train_data_label, **kwargs):
 
     return model
 
-
-# DONE: define a model. Here, a basic MLP model is defined. You can completely
-# change this model - and are encouraged to do so.
 class Model(nn.Module):
     """
     Small conv encoder-decoder for 28x28 inpainting.
@@ -220,17 +156,7 @@ class Model(nn.Module):
 
 
 def testing(model, test_data_input):
-    """
-    Uses your model to predict the ouputs for the test data. Saves the outputs
-    as a binary file. This file needs to be submitted. This function does not
-    need to be modified except for setting the batch_size value. If you choose
-    to modify it otherwise, please ensure that the generating and saving of the
-    output data is not modified.
-
-    Args:
-    - model: torch.nn.Module
-    - test_data_input: Tensor
-    """
+   
     model.eval()
     model.to(device)
 
@@ -238,9 +164,7 @@ def testing(model, test_data_input):
         test_data_input = test_data_input.to(device)
         # Predict the output batch-wise to avoid memory issues
         test_data_output = []
-        # TODO: You can increase or decrease this batch size depending on your
-        # memory requirements of your computer / model
-        # This will not affect the performance of the model and your score
+
         batch_size = 64
         for i in tqdm(
             range(0, test_data_input.shape[0], batch_size),
